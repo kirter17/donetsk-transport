@@ -148,7 +148,7 @@ L.control.zoom({position:'topleft'}).addTo(map);
 
 // Яндекс → Esri как запасной
 const tileSrcs = [
-  'https://tiles.api-maps.yandex.ru/v1/tiles/?x={x}&y={y}&z={z}&lang=ru_RU&l=map&projection=web_mercator&apikey=a4d63777-4629-40ed-9954-bb493ddbc643',
+  'https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&lang=ru_RU&apikey=a4d63777-4629-40ed-9954-bb493ddbc643',
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
 ];
 let tl=null;

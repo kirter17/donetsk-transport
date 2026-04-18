@@ -10,7 +10,7 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:#e8e8e8;color:#1a1a1a;}
 #map{position:fixed;inset:0;z-index:1;}
-#logo{position:fixed;top:16px;right:72px;z-index:600;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;}
+#logo{position:fixed;bottom:20px;left:16px;z-index:600;display:flex;flex-direction:column;align-items:flex-start;gap:2px;pointer-events:none;background:rgba(0,0,0,.3);border-radius:8px;padding:6px 10px;}
 #logo-name{font-size:17px;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.7),0 1px 2px rgba(0,0,0,.5);}
 #logo-author{font-size:12px;font-weight:500;color:rgba(255,255,255,.85);text-shadow:0 2px 6px rgba(0,0,0,.7);}
 #panel{position:fixed;top:0;right:0;bottom:0;width:320px;background:#fff;box-shadow:-2px 0 20px rgba(0,0,0,.12);z-index:700;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.4,0,.2,1);}
@@ -88,6 +88,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',syste
   #tabs{padding:0 16px 12px;gap:8px;}
   #list-wrap{padding:0 14px;}
   .s-ico{font-size:20px;top:50%;transform:translateY(-50%);}
+  #logo{bottom:auto;left:auto;top:16px;right:16px;align-items:flex-end;}
+  .leaflet-top.leaflet-left{top:50% !important;left:auto !important;right:8px;transform:translateY(-50%);}
 }
 </style>
 </head>
@@ -101,7 +103,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',syste
   <div id="panel-header">
     <button id="btn-collapse" onclick="setPanelState('collapsed')" title="Свернуть"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M3 8l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <span id="panel-title">Маршруты</span>
-    <button onclick="setPanelState('full')" title="На весь экран"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 5V1h4M9 1h4v4M1 9v4h4M9 13h4V9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button id="btn-full" onclick="setPanelState('full')" title="На весь экран"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 5V1h4M9 1h4v4M1 9v4h4M9 13h4V9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
   <div id="search-wrap">
     <span class="s-ico">⌕</span>
@@ -252,20 +254,34 @@ setInterval(()=>{
 // ── UI ────────────────────────────────────────────────────────────────────────
 const SVG_DOWN=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M3 8l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const SVG_UP=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 12V2M3 6l4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SVG_EXPAND=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 5V1h4M9 1h4v4M1 9v4h4M9 13h4V9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SVG_COMPRESS=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 1v4H1M9 1v4h4M5 13v-4H1M9 13v-4h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 function setPanelState(s){
   const p=document.getElementById('panel');
-  const btn=document.getElementById('btn-collapse');
+  const btnC=document.getElementById('btn-collapse');
+  const btnF=document.getElementById('btn-full');
   p.classList.remove('collapsed','full');
-  if(s==='collapsed'){
-    p.classList.add('collapsed');
-    btn.innerHTML=SVG_UP;
-    btn.onclick=()=>setPanelState('half');
-    btn.title='Развернуть';
+  if(s==='full'){
+    p.classList.add('full');
+    btnC.style.visibility='hidden';
+    btnF.innerHTML=SVG_COMPRESS;
+    btnF.onclick=()=>setPanelState('half');
+    btnF.title='Свернуть';
   } else {
-    btn.innerHTML=SVG_DOWN;
-    btn.onclick=()=>setPanelState('collapsed');
-    btn.title='Свернуть';
-    if(s==='full')p.classList.add('full');
+    btnC.style.visibility='';
+    btnF.innerHTML=SVG_EXPAND;
+    btnF.onclick=()=>setPanelState('full');
+    btnF.title='На весь экран';
+    if(s==='collapsed'){
+      p.classList.add('collapsed');
+      btnC.innerHTML=SVG_UP;
+      btnC.onclick=()=>setPanelState('half');
+      btnC.title='Развернуть';
+    } else {
+      btnC.innerHTML=SVG_DOWN;
+      btnC.onclick=()=>setPanelState('collapsed');
+      btnC.title='Свернуть';
+    }
   }
 }
 function togglePanel(){

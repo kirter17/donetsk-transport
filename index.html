@@ -51,8 +51,13 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',syste
 .sline{display:flex;flex-direction:column;align-items:center;flex-shrink:0;margin-top:2px;}
 .sdot{width:10px;height:10px;border-radius:50%;border:2.5px solid var(--dc);background:#fff;flex-shrink:0;}
 .sconn{width:2px;height:22px;background:#e5e7eb;}
-.sname{flex:1;font-size:13px;color:#374151;line-height:1.4;}
+.sname{font-size:13px;color:#374151;line-height:1.4;}
 .seta{font-size:12px;font-weight:600;color:var(--dc);white-space:nowrap;padding-top:1px;}
+.sinfo{flex:1;min-width:0;}
+.stop-buses{display:flex;flex-wrap:wrap;gap:5px;padding-top:6px;}
+.stop-buses span{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.srow{cursor:pointer;}
+#drag-handle{display:none;width:40px;height:4px;background:#d1d5db;border-radius:2px;margin:10px auto 2px;flex-shrink:0;}
 #toggle-btn{position:fixed;top:50%;right:0;transform:translateY(-50%);z-index:800;width:28px;height:56px;background:#fff;border:1px solid #e5e7eb;border-right:none;border-radius:8px 0 0 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:-2px 0 8px rgba(0,0,0,.08);font-size:12px;color:#6b7280;}
 #overlay{position:fixed;inset:0;z-index:900;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
 .spinner{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin .8s linear infinite;}
@@ -71,7 +76,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',syste
 .ovt{font-size:15px;color:#374151;font-weight:500;}
 .ovs{font-size:13px;color:#9ca3af;text-align:center;max-width:260px;line-height:1.6;}
 @media(max-width:639px){
-  #panel{width:100%;top:auto;height:40vh;border-radius:16px 16px 0 0;}
+  #panel{width:100%;top:auto;height:40vh;border-radius:16px 16px 0 0;transition:transform .35s cubic-bezier(.4,0,.2,1),height .32s cubic-bezier(.4,0,.2,1),border-radius .32s;}
+  #drag-handle{display:block;}
   #panel.hidden{transform:translateY(100%);}
   #panel.collapsed{height:64px;overflow:hidden;}
   #panel.full{top:0 !important;height:auto;border-radius:0;}
@@ -104,6 +110,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',syste
   <div id="logo-author">Кирилл Терлецкий</div>
 </div>
 <div id="panel">
+  <div id="drag-handle"></div>
   <div id="panel-header">
     <button id="btn-collapse" onclick="setPanelState('collapsed')" title="Свернуть"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M3 8l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <span id="panel-title">Маршруты</span>
@@ -199,10 +206,15 @@ function tryTile(i){
 tryTile(0);
 
 // ── ИКОНКИ ────────────────────────────────────────────────────────────────────
-function busIcon(color,ref){
+function busIcon(color,ref,angle=0){
+  const r=angle*Math.PI/180,c=15,d=11;
+  const sx=Math.round(c+Math.sin(r)*d), sy=Math.round(c-Math.cos(r)*d);
   return L.divIcon({
-    html:`<div style="width:22px;height:22px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:${ref.length>2?8:10}px;font-weight:700;color:#fff;font-family:system-ui">${ref}</div>`,
-    className:'',iconSize:[22,22],iconAnchor:[11,11]
+    html:`<div style="position:relative;width:30px;height:30px">
+      <div style="position:absolute;width:7px;height:7px;background:${color};border:1.5px solid rgba(255,255,255,.95);border-radius:50%;left:${sx-3}px;top:${sy-3}px;transition:left .2s,top .2s"></div>
+      <div style="position:absolute;left:4px;top:4px;width:22px;height:22px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:${ref.length>2?8:10}px;font-weight:700;color:#fff;font-family:system-ui">${ref}</div>
+    </div>`,
+    className:'',iconSize:[30,30],iconAnchor:[15,15]
   });
 }
 function stopIcon(color){
@@ -219,7 +231,7 @@ function getPos(c,p){
   return[lerp(c[i][0],c[Math.min(i+1,n)][0],t),lerp(c[i][1],c[Math.min(i+1,n)][1],t)];
 }
 
-let allRoutes=[],activeDetailId=null,currentTab='all',searchQ='',panelOpen=true,detailTimer=null;
+let allRoutes=[],activeDetailId=null,currentTab='all',searchQ='',panelOpen=true,detailTimer=null,selectedStop=null,tickN=0;
 const layers={},progress={},routeVisible={};
 
 function drawRoute(r){
@@ -230,8 +242,11 @@ function drawRoute(r){
   );
   const n=NUM_BUSES[r.type]||3;
   progress[r.id]=Array.from({length:n},(_,i)=>i/n);
-  const buses=progress[r.id].map((p,bi)=>{
-    const m=L.marker(getPos(r.coords,p),{icon:busIcon(color,r.ref)});
+  const buses=progress[r.id].map((p)=>{
+    const pos=getPos(r.coords,p);
+    const ah=getPos(r.coords,(p+0.01)%1);
+    const ang=Math.atan2(ah[1]-pos[1],ah[0]-pos[0])*180/Math.PI;
+    const m=L.marker(pos,{icon:busIcon(color,r.ref,ang)});
     m.on('click',()=>openDetail(r.id));
     return m;
   });
@@ -246,11 +261,20 @@ function setVisible(id,v){
 }
 
 setInterval(()=>{
+  tickN++;
   allRoutes.forEach(r=>{
     if(!layers[r.id]||!routeVisible[r.id])return;
+    const color=TYPE_COLOR[r.type];
     progress[r.id].forEach((p,i)=>{
-      progress[r.id][i]=(p+0.00012)%1;
-      layers[r.id].buses[i].setLatLng(getPos(r.coords,progress[r.id][i]));
+      const np=(p+0.00012)%1;
+      progress[r.id][i]=np;
+      const pos=getPos(r.coords,np);
+      layers[r.id].buses[i].setLatLng(pos);
+      if(tickN%10===0){
+        const ah=getPos(r.coords,(np+0.01)%1);
+        const ang=Math.atan2(ah[1]-pos[1],ah[0]-pos[0])*180/Math.PI;
+        layers[r.id].buses[i].setIcon(busIcon(color,r.ref,ang));
+      }
     });
   });
 },200);
@@ -287,6 +311,7 @@ function setPanelState(s){
       btnC.title='Свернуть';
     }
   }
+  setTimeout(()=>map.invalidateSize(),360);
 }
 function togglePanel(){
   panelOpen=!panelOpen;
@@ -301,51 +326,70 @@ function setTab(t,el){
 function onSearch(q){searchQ=q.toLowerCase();renderList();}
 function toggleRoute(id){setVisible(id,!routeVisible[id]);renderList();}
 
-function renderStops(r){
+function selectStop(si){
+  selectedStop=selectedStop===si?null:si;
+  const r=allRoutes.find(x=>x.id===activeDetailId);
+  if(r)renderStops(r,false);
+}
+function renderStops(r,scrollToCurrent){
   const color=TYPE_COLOR[r.type];
   const progs=progress[r.id]||[];
   const n=r.stops.length;
   const speed=0.0006;
-  document.getElementById('stops-list').innerHTML=r.stops.map((s,si)=>{
+  const list=document.getElementById('stops-list');
+  const savedScroll=list.scrollTop;
+  list.innerHTML=r.stops.map((s,si)=>{
     const isFirst=si===0,isLast=si===n-1;
     const stopP=n>1?si/(n-1):0;
-    let eta='Конечная',isCurrent=false;
+    let eta='Конечная',isCurrent=false,allEtas=[];
     if(!isFirst&&!isLast){
       let minEta=Infinity;
       progs.forEach(busP=>{
         let d=stopP-busP;if(d<0)d+=1;
         if(d<0.015)isCurrent=true;
-        const mins=d/speed/60;
+        const mins=Math.max(1,Math.round(d/speed/60));
+        allEtas.push(mins);
         if(mins<minEta)minEta=mins;
       });
-      eta=isCurrent?'Здесь':`ещё ${Math.max(1,Math.round(minEta))} мин`;
+      allEtas.sort((a,b)=>a-b);
+      eta=isCurrent?'Здесь':`ещё ${allEtas[0]} мин`;
     }
-    return `<div class="srow${isCurrent?' current':''}" style="--dc:${color}">
+    const isSel=selectedStop===si;
+    const busesHtml=isSel&&allEtas.length
+      ?`<div class="stop-buses">${allEtas.map((t,i)=>`<span>Авт.${i+1} — ${t} мин</span>`).join('')}</div>`
+      :'';
+    return `<div class="srow${isCurrent?' current':''}${isSel?' selected':''}" style="--dc:${color}" onclick="selectStop(${si})">
       <div class="sline"><div class="sdot"></div>${!isLast?'<div class="sconn"></div>':''}</div>
-      <div class="sname">${s.name}</div>
+      <div class="sinfo"><div class="sname">${s.name}</div>${busesHtml}</div>
       <div class="seta">${eta}</div>
     </div>`;
   }).join('');
+  list.scrollTop=savedScroll;
+  if(scrollToCurrent){
+    const curr=list.querySelector('.current');
+    if(curr)setTimeout(()=>curr.scrollIntoView({behavior:'smooth',block:'center'}),80);
+  }
 }
 function openDetail(id){
   const r=allRoutes.find(x=>x.id===id);if(!r)return;
-  activeDetailId=id;
+  activeDetailId=id;selectedStop=null;
   const color=TYPE_COLOR[r.type];
   document.getElementById('dbadge').textContent=r.ref;
   document.getElementById('dbadge').style.background=color;
   document.getElementById('detail').style.setProperty('--dc',color);
   document.getElementById('dtitle').textContent=r.name;
   document.getElementById('dsub').textContent=`${r.from} → ${r.to}`;
-  const n=NUM_BUSES[r.type]||3;
-  document.getElementById('dcount').textContent=`${n} автобуса на линии`;
-  renderStops(r);
+  const nb=NUM_BUSES[r.type]||3;
+  document.getElementById('dcount').textContent=`${nb} автобуса на линии`;
+  renderStops(r,true);
   if(detailTimer)clearInterval(detailTimer);
-  detailTimer=setInterval(()=>renderStops(r),1500);
-  try{map.fitBounds(L.latLngBounds(r.coords),{padding:[60,60]});}catch(e){}
+  detailTimer=setInterval(()=>renderStops(r,false),1500);
+  const ph=window.innerWidth<=639?document.getElementById('panel').offsetHeight:0;
+  try{map.fitBounds(L.latLngBounds(r.coords),{paddingTopLeft:[20,20],paddingBottomRight:[20,ph+20]});}catch(e){}
   document.getElementById('detail').classList.add('open');
 }
 function closeDetail(){
-  activeDetailId=null;
+  activeDetailId=null;selectedStop=null;
   if(detailTimer){clearInterval(detailTimer);detailTimer=null;}
   document.getElementById('detail').classList.remove('open');
 }
@@ -455,6 +499,40 @@ function finishInit(routes) {
 window.resetCache = () => { localStorage.removeItem(CACHE_KEY); location.reload(); };
 
 initRoutes();
+
+// ── СВАЙП ШТОРКИ ──────────────────────────────────────────────────────────────
+(()=>{
+  let swY=null,swH=null;
+  const panel=document.getElementById('panel');
+  const handle=document.getElementById('drag-handle');
+  const header=document.getElementById('panel-header');
+
+  function swStart(e){
+    if(window.innerWidth>639)return;
+    swY=e.touches[0].clientY;
+    swH=panel.offsetHeight;
+    panel.style.transition='none';
+  }
+  function swMove(e){
+    if(swY===null)return;
+    const h=Math.max(56,Math.min(window.innerHeight,swH+(swY-e.touches[0].clientY)));
+    panel.style.height=h+'px';
+  }
+  function swEnd(){
+    if(swY===null)return;
+    panel.style.transition='';
+    const h=panel.offsetHeight,vh=window.innerHeight;
+    const states=[{n:'collapsed',h:64},{n:'half',h:Math.round(vh*.4)},{n:'full',h:vh}];
+    const snap=states.reduce((b,s)=>Math.abs(h-s.h)<Math.abs(h-b.h)?s:b);
+    panel.style.height='';
+    setPanelState(snap.n);
+    swY=null;
+  }
+  handle.addEventListener('touchstart',swStart,{passive:true});
+  header.addEventListener('touchstart',swStart,{passive:true});
+  document.addEventListener('touchmove',swMove,{passive:true});
+  document.addEventListener('touchend',swEnd,{passive:true});
+})();
 </script>
 </body>
 </html>

@@ -10,10 +10,9 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:#e8e8e8;color:#1a1a1a;}
 #map{position:fixed;inset:0;z-index:1;}
-#logo{position:fixed;bottom:20px;left:16px;z-index:600;display:flex;align-items:baseline;gap:8px;pointer-events:none;}
+#logo{position:fixed;top:16px;right:72px;z-index:600;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;}
 #logo-name{font-size:17px;font-weight:700;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.7),0 1px 2px rgba(0,0,0,.5);}
-#logo-name span{color:rgba(255,255,255,.65);}
-#logo-author{font-size:13px;font-weight:500;color:rgba(255,255,255,.85);text-shadow:0 2px 6px rgba(0,0,0,.7);}
+#logo-author{font-size:12px;font-weight:500;color:rgba(255,255,255,.85);text-shadow:0 2px 6px rgba(0,0,0,.7);}
 #panel{position:fixed;top:0;right:0;bottom:0;width:320px;background:#fff;box-shadow:-2px 0 20px rgba(0,0,0,.12);z-index:700;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.4,0,.2,1);}
 #panel.hidden{transform:translateX(100%);}
 #search-wrap{padding:14px 16px 8px;flex-shrink:0;position:relative;}
@@ -35,8 +34,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',syste
 .rinfo{flex:1;min-width:0;}
 .rname{font-size:13px;font-weight:600;color:#1a1a1a;}
 .rends{font-size:11px;color:#8b909a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
-.rbtn{padding:5px 10px;border-radius:8px;background:#f3f4f6;border:none;font-size:11px;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .12s;}
-.rbtn:hover{background:#e5e7eb;}
+.rbtn{padding:5px 10px;border-radius:8px;background:transparent;border:1.5px solid #2563eb;font-size:11px;font-weight:600;color:#2563eb;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .12s,color .12s;}
+.rbtn:hover{background:#2563eb;color:#fff;}
 #detail{position:absolute;inset:0;background:#fff;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:10;}
 #detail.open{transform:translateX(0);}
 #dhead{padding:14px 16px 12px;border-bottom:1px solid #f0f1f3;flex-shrink:0;}
@@ -57,23 +56,50 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Segoe UI',syste
 #overlay{position:fixed;inset:0;z-index:900;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
 .spinner{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
+#panel-header{display:none;align-items:center;justify-content:space-between;padding:10px 16px 8px;flex-shrink:0;border-bottom:1px solid #f0f1f3;}
+#panel-header button{width:36px;height:36px;border-radius:10px;background:#f3f4f6;border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#374151;transition:background .12s;}
+#panel-header button:hover{background:#e5e7eb;}
+#panel-title{font-size:16px;font-weight:700;color:#1a1a1a;}
+.srow.current .sdot{background:#16a34a;border-color:#16a34a;}
+.srow.current .sname{color:#16a34a;font-weight:700;}
+.srow.current .seta{color:#16a34a;}
 .ovt{font-size:15px;color:#374151;font-weight:500;}
 .ovs{font-size:13px;color:#9ca3af;text-align:center;max-width:260px;line-height:1.6;}
 @media(max-width:639px){
-  #panel{width:100%;top:auto;height:60vh;border-radius:16px 16px 0 0;}
+  #panel{width:100%;top:auto;height:40vh;border-radius:16px 16px 0 0;}
   #panel.hidden{transform:translateY(100%);}
+  #panel.collapsed{height:64px;overflow:hidden;}
+  #panel.full{height:100vh;border-radius:0;}
   #toggle-btn{display:none;}
-  #logo{bottom:calc(60vh + 12px);}
+  #panel-header{display:flex;}
+  #search{height:46px;font-size:15px;}
+  .tab{padding:7px 15px;font-size:13px;}
+  .rrow{padding:13px 12px;margin-bottom:6px;}
+  .rbadge{width:42px;height:42px;font-size:14px;}
+  .rname{font-size:15px;}
+  .rends{font-size:12px;}
+  .rbtn{padding:8px 14px;font-size:12px;}
+  .glabel{font-size:11px;padding:12px 4px 6px;}
+  .sname{font-size:14px;}
+  .seta{font-size:13px;}
+  #search-wrap{padding:16px 16px 10px;}
+  #tabs{padding:0 16px 12px;gap:8px;}
+  #list-wrap{padding:0 14px;}
 }
 </style>
 </head>
 <body>
 <div id="map"></div>
 <div id="logo">
-  <div id="logo-name">Донецк<span>Транспорт</span></div>
+  <div id="logo-name">Донецк Транспорт</div>
   <div id="logo-author">Кирилл Терлецкий</div>
 </div>
 <div id="panel">
+  <div id="panel-header">
+    <button onclick="setPanelState('collapsed')" title="Свернуть">↓</button>
+    <span id="panel-title">Маршруты</span>
+    <button onclick="setPanelState('full')" title="На весь экран">⤢</button>
+  </div>
   <div id="search-wrap">
     <span class="s-ico">⌕</span>
     <input id="search" type="search" placeholder="Поиск маршрута..." oninput="onSearch(this.value)">
@@ -166,14 +192,14 @@ tryTile(0);
 // ── ИКОНКИ ────────────────────────────────────────────────────────────────────
 function busIcon(color,ref){
   return L.divIcon({
-    html:`<div style="width:26px;height:26px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:${ref.length>2?9:11}px;font-weight:700;color:#fff;font-family:system-ui">${ref}</div>`,
-    className:'',iconSize:[26,26],iconAnchor:[13,13]
+    html:`<div style="width:22px;height:22px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:${ref.length>2?8:10}px;font-weight:700;color:#fff;font-family:system-ui">${ref}</div>`,
+    className:'',iconSize:[22,22],iconAnchor:[11,11]
   });
 }
 function stopIcon(color){
   return L.divIcon({
-    html:`<div style="width:9px;height:9px;background:#fff;border:2.5px solid ${color};border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>`,
-    className:'',iconSize:[9,9],iconAnchor:[4,4]
+    html:`<div style="width:7px;height:7px;background:#fff;border:2px solid ${color};border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.15)"></div>`,
+    className:'',iconSize:[7,7],iconAnchor:[3,3]
   });
 }
 
@@ -184,12 +210,12 @@ function getPos(c,p){
   return[lerp(c[i][0],c[Math.min(i+1,n)][0],t),lerp(c[i][1],c[Math.min(i+1,n)][1],t)];
 }
 
-let allRoutes=[],activeDetailId=null,currentTab='all',searchQ='',panelOpen=true;
+let allRoutes=[],activeDetailId=null,currentTab='all',searchQ='',panelOpen=true,detailTimer=null;
 const layers={},progress={},routeVisible={};
 
 function drawRoute(r){
   const color=TYPE_COLOR[r.type];
-  const poly=L.polyline(r.coords,{color,weight:4,opacity:.9});
+  const poly=L.polyline(r.coords,{color,weight:2.5,opacity:.85});
   const stopMarkers=r.stops.map(s=>
     L.marker([s.lat,s.lon],{icon:stopIcon(color)}).bindTooltip(s.name,{direction:'top',offset:[0,-6]})
   );
@@ -221,6 +247,12 @@ setInterval(()=>{
 },200);
 
 // ── UI ────────────────────────────────────────────────────────────────────────
+function setPanelState(s){
+  const p=document.getElementById('panel');
+  p.classList.remove('collapsed','full');
+  if(s==='collapsed')p.classList.add('collapsed');
+  else if(s==='full')p.classList.add('full');
+}
 function togglePanel(){
   panelOpen=!panelOpen;
   document.getElementById('panel').classList.toggle('hidden',!panelOpen);
@@ -234,6 +266,32 @@ function setTab(t,el){
 function onSearch(q){searchQ=q.toLowerCase();renderList();}
 function toggleRoute(id){setVisible(id,!routeVisible[id]);renderList();}
 
+function renderStops(r){
+  const color=TYPE_COLOR[r.type];
+  const progs=progress[r.id]||[];
+  const n=r.stops.length;
+  const speed=0.0006;
+  document.getElementById('stops-list').innerHTML=r.stops.map((s,si)=>{
+    const isFirst=si===0,isLast=si===n-1;
+    const stopP=n>1?si/(n-1):0;
+    let eta='Конечная',isCurrent=false;
+    if(!isFirst&&!isLast){
+      let minEta=Infinity;
+      progs.forEach(busP=>{
+        let d=stopP-busP;if(d<0)d+=1;
+        if(d<0.015)isCurrent=true;
+        const mins=d/speed/60;
+        if(mins<minEta)minEta=mins;
+      });
+      eta=isCurrent?'Здесь':`ещё ${Math.max(1,Math.round(minEta))} мин`;
+    }
+    return `<div class="srow${isCurrent?' current':''}" style="--dc:${color}">
+      <div class="sline"><div class="sdot"></div>${!isLast?'<div class="sconn"></div>':''}</div>
+      <div class="sname">${s.name}</div>
+      <div class="seta">${eta}</div>
+    </div>`;
+  }).join('');
+}
 function openDetail(id){
   const r=allRoutes.find(x=>x.id===id);if(!r)return;
   activeDetailId=id;
@@ -245,20 +303,15 @@ function openDetail(id){
   document.getElementById('dsub').textContent=`${r.from} → ${r.to}`;
   const n=NUM_BUSES[r.type]||3;
   document.getElementById('dcount').textContent=`${n} автобуса на линии`;
-  document.getElementById('stops-list').innerHTML=r.stops.map((s,i)=>{
-    const isLast=i===r.stops.length-1;
-    const eta=i===0?'Конечная':isLast?'Конечная':`~${Math.max(1,i*3)} мин`;
-    return `<div class="srow" style="--dc:${color}">
-      <div class="sline"><div class="sdot"></div>${!isLast?'<div class="sconn"></div>':''}</div>
-      <div class="sname">${s.name}</div>
-      <div class="seta">${eta}</div>
-    </div>`;
-  }).join('');
+  renderStops(r);
+  if(detailTimer)clearInterval(detailTimer);
+  detailTimer=setInterval(()=>renderStops(r),1500);
   try{map.fitBounds(L.latLngBounds(r.coords),{padding:[60,60]});}catch(e){}
   document.getElementById('detail').classList.add('open');
 }
 function closeDetail(){
   activeDetailId=null;
+  if(detailTimer){clearInterval(detailTimer);detailTimer=null;}
   document.getElementById('detail').classList.remove('open');
 }
 
